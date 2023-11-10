@@ -64,12 +64,37 @@ public class TransactionService {
     }
 
     public TransactionStatisticsDto getStatistics() {
+        Instant now = Instant.now();
         TransactionStatisticsDto statistics = new TransactionStatisticsDto();
+        BigDecimal sum = BigDecimal.ZERO;
+        BigDecimal max = BigDecimal.ZERO;
+        BigDecimal min = BigDecimal.ZERO;
+        long count = 0;
+
+        for (Map.Entry<Long, TransactionDto> entry : transactions.entrySet()) {
+            long timestamp = entry.getKey();
+            TransactionDto transaction = entry.getValue();
+            long timeDifference = now.toEpochMilli() - timestamp;
+
+            if (timeDifference <= THIRTY_SECONDS) {
+                BigDecimal amount = transaction.getAmount();
+                if (count == 0) {
+                    max = amount;
+                    min = amount;
+                }
+                sum = sum.add(amount);
+                max = max.max(amount);
+                min = min.min(amount);
+                count++;
+            }
+        }
+
         statistics.setSum(sum);
         statistics.setAvg(count == 0 ? BigDecimal.ZERO : sum.divide(BigDecimal.valueOf(count), 2, BigDecimal.ROUND_HALF_UP));
         statistics.setMax(max);
         statistics.setMin(min);
         statistics.setCount(count);
+
         return statistics;
     }
 }
